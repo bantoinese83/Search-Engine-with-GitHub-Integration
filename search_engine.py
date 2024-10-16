@@ -273,7 +273,7 @@ vectorstore = create_faiss_vectorstore(documents)
 query = ("Refactor the code to improve execution time and optimize memory usage, while maintaining readability and "
          "functionality. Ensure that the changes are well-documented. Provide a detailed explanation of the changes, "
          "including before and after comparisons.")
-answer = search_and_generate_answer(vectorstore, query, repo_name="car-rental-system")
+answer = search_and_generate_answer(vectorstore, query)
 print(f"Answer: {answer['answer']}")
 print(f"Before Changes: {answer['before_changes']}")
 print(f"After Changes: {answer['after_changes']}")
