@@ -167,14 +167,13 @@ def is_git_repository() -> bool:
         return False
 
 
-def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, repo_path: str = None) -> Dict[str, str]:
+def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5) -> Dict[str, str]:
     """Search the vectorstore and generate an answer using Gemini, including before and after changes.
 
     Args:
         vectorstore (FAISS): FAISS vectorstore object.
         query (str): Query string.
         top_k (int): Number of top documents to retrieve.
-        repo_path (str): Path to the cloned repository.
 
     Returns:
         Dict[str, str]: Dictionary containing the generated answer and before/after changes.
@@ -211,11 +210,10 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
         if hasattr(response, 'text'):
             after_changes = response.text
             if is_git_repository():
-                # Save the generated changes in the cloned repository directory
-                changes_file_path = os.path.join(repo_path, 'generated_changes.txt') if repo_path else 'generated_changes.txt'
-                with open(changes_file_path, 'w') as f:
+                # Capture the state after changes
+                with open('generated_changes.txt', 'w') as f:
                     f.write(after_changes)
-                subprocess.run(['git', 'add', changes_file_path], check=True)
+                subprocess.run(['git', 'add', 'generated_changes.txt'], check=True)
                 subprocess.run(['git', 'commit', '-m', 'After changes'], check=True)
                 after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True).stdout
             else:
@@ -234,7 +232,7 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
 
 # List of GitHub repository URLs
 repository_urls = [
-    "https://github.com/bantoinese83/car-rental-system.git",
+    "https://github.com/bantoinese83/cyberguard.git",
 ]
 
 # Directory to clone repositories
@@ -250,7 +248,7 @@ vectorstore = create_faiss_vectorstore(documents)
 query = ("Refactor the code to improve execution time and optimize memory usage, while maintaining readability and "
          "functionality. Ensure that the changes are well-documented. Provide a detailed explanation of the changes, "
          "including before and after comparisons.")
-answer = search_and_generate_answer(vectorstore, query, repo_path=os.path.join(clone_directory, "car-rental-system"))
+answer = search_and_generate_answer(vectorstore, query)
 print(f"Answer: {answer['answer']}")
 print(f"Before Changes: {answer['before_changes']}")
 print(f"After Changes: {answer['after_changes']}")
