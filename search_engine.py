@@ -224,7 +224,8 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
 
                 subprocess.run(['git', 'add', changes_file_path], check=True)
                 subprocess.run(['git', 'commit', '-m', 'After changes'], check=True)
-                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True).stdout
+                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True,
+                                                    text=True).stdout
 
                 # Parse the diff output to get file names and line numbers
                 changes_summary = []
@@ -246,10 +247,13 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
                 "changes_summary": changes_summary_str
             }
         else:
-            return {"answer": "Invalid response format.", "before_changes": before_changes, "after_changes": "", "changes_summary": ""}
+            return {"answer": "Invalid response format.", "before_changes": before_changes, "after_changes": "",
+                    "changes_summary": ""}
     except Exception as error:
         logging.error(f"Error searching and answering: {error}")
-        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "", "after_changes": "", "changes_summary": ""}
+        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "",
+                "after_changes": "", "changes_summary": ""}
+
 
 # List of GitHub repository URLs
 repository_urls = [
