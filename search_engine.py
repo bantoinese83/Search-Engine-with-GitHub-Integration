@@ -180,6 +180,7 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
     Returns:
         Dict[str, str]: Dictionary containing the generated answer and before/after changes.
     """
+    current_file = None
     try:
         if is_git_repository():
             # Capture the state before changes
@@ -223,26 +224,36 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, r
 
                 subprocess.run(['git', 'add', changes_file_path], check=True)
                 subprocess.run(['git', 'commit', '-m', 'After changes'], check=True)
-                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True,
-                                                    text=True).stdout
+                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True).stdout
+
+                # Parse the diff output to get file names and line numbers
+                changes_summary = []
+                for line in after_changes_diff.splitlines():
+                    if line.startswith('diff --git'):
+                        current_file = line.split(' ')[-1]
+                    elif line.startswith('@@'):
+                        line_numbers = line.split(' ')[1]
+                        changes_summary.append(f"File: {current_file}, Lines: {line_numbers}")
+
+                changes_summary_str = "\n".join(changes_summary)
             else:
                 after_changes_diff = "Not a git repository."
+                changes_summary_str = "Not a git repository."
             return {
                 "answer": after_changes,
                 "before_changes": before_changes,
-                "after_changes": after_changes_diff
+                "after_changes": after_changes_diff,
+                "changes_summary": changes_summary_str
             }
         else:
-            return {"answer": "Invalid response format.", "before_changes": before_changes, "after_changes": ""}
+            return {"answer": "Invalid response format.", "before_changes": before_changes, "after_changes": "", "changes_summary": ""}
     except Exception as error:
         logging.error(f"Error searching and answering: {error}")
-        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "",
-                "after_changes": ""}
-
+        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "", "after_changes": "", "changes_summary": ""}
 
 # List of GitHub repository URLs
 repository_urls = [
-    "https://github.com/bantoinese83/car-rental-system.git",
+    "https://github.com/bantoinese83/sudoku_solver.git",
 ]
 
 # Directory to clone repositories
@@ -258,7 +269,8 @@ vectorstore = create_faiss_vectorstore(documents)
 query = ("Refactor the code to improve execution time and optimize memory usage, while maintaining readability and "
          "functionality. Ensure that the changes are well-documented. Provide a detailed explanation of the changes, "
          "including before and after comparisons.")
-answer = search_and_generate_answer(vectorstore, query)
+answer = search_and_generate_answer(vectorstore, query, repo_name="car-rental-system")
 print(f"Answer: {answer['answer']}")
 print(f"Before Changes: {answer['before_changes']}")
 print(f"After Changes: {answer['after_changes']}")
+print(f"Changes Summary: {answer['changes_summary']}")
