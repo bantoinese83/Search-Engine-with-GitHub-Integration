@@ -232,7 +232,7 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5) -
 
 # List of GitHub repository URLs
 repository_urls = [
-    "https://github.com/bantoinese83/cyberguard.git",
+    "https://github.com/bantoinese83/car-rental-system.git",
 ]
 
 # Directory to clone repositories
