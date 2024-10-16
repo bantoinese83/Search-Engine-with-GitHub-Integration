@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 import botocore
+from langchain.schema import Document
 
 from search_engine import (
     create_bucket_if_not_exists,
@@ -14,7 +15,7 @@ from search_engine import (
     search_and_generate_answer,
     S3_BUCKET_NAME
 )
-from langchain.schema import Document
+
 
 class TestSearchEngine(unittest.TestCase):
 
@@ -44,7 +45,8 @@ class TestSearchEngine(unittest.TestCase):
         mock_make_archive.return_value = 'zip_path'
         repo_path = clone_repository('https://github.com/user/repo.git', 'clone_directory')
         self.assertEqual(repo_path, 'clone_directory/repo')
-        mock_subprocess_run.assert_called_once_with(['git', 'clone', 'https://github.com/user/repo.git', 'clone_directory/repo'], check=True)
+        mock_subprocess_run.assert_called_once_with(
+            ['git', 'clone', 'https://github.com/user/repo.git', 'clone_directory/repo'], check=True)
         mock_upload_to_s3.assert_called_once_with('zip_path', 'repos/repo.zip')
 
     def test_extract_repository_content(self):
@@ -76,15 +78,18 @@ class TestSearchEngine(unittest.TestCase):
     @patch('search_engine.subprocess.run')
     @patch('search_engine.genai.GenerativeModel')
     @patch('search_engine.FAISS.as_retriever')
-    def test_search_and_generate_answer(self, mock_as_retriever, mock_generative_model, mock_subprocess_run, mock_is_git_repository):
+    def test_search_and_generate_answer(self, mock_as_retriever, mock_generative_model, mock_subprocess_run,
+                                        mock_is_git_repository):
         mock_as_retriever.return_value.invoke.return_value = [Document(page_content='content', metadata={})]
-        mock_generative_model.return_value.start_chat.return_value.send_message.return_value = MagicMock(text='generated answer')
+        mock_generative_model.return_value.start_chat.return_value.send_message.return_value = MagicMock(
+            text='generated answer')
         mock_subprocess_run.return_value = MagicMock(stdout='diff output')
         vectorstore = MagicMock()
         result = search_and_generate_answer(vectorstore, 'query')
         self.assertIn('answer', result)
         self.assertIn('before_changes', result)
         self.assertIn('after_changes', result)
+
 
 if __name__ == '__main__':
     unittest.main()
