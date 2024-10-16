@@ -161,19 +161,21 @@ def is_git_repository() -> bool:
         bool: True if the current directory is a Git repository, False otherwise.
     """
     try:
-        subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.run(['git', 'rev-parse', '--is-inside-work-tree'], check=True, stdout=subprocess.PIPE,
+                       stderr=subprocess.PIPE)
         return True
     except subprocess.CalledProcessError:
         return False
 
 
-def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5) -> Dict[str, str]:
+def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5, repo_name: str = None) -> Dict[str, str]:
     """Search the vectorstore and generate an answer using Gemini, including before and after changes.
 
     Args:
         vectorstore (FAISS): FAISS vectorstore object.
         query (str): Query string.
         top_k (int): Number of top documents to retrieve.
+        repo_name (str): Name of the repository.
 
     Returns:
         Dict[str, str]: Dictionary containing the generated answer and before/after changes.
@@ -210,12 +212,19 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5) -
         if hasattr(response, 'text'):
             after_changes = response.text
             if is_git_repository():
-                # Capture the state after changes
-                with open('generated_changes.txt', 'w') as f:
+                # Create directory if it doesn't exist
+                changes_dir = 'generated_changes'
+                os.makedirs(changes_dir, exist_ok=True)
+
+                # Save the generated changes with the repository name in the file name
+                changes_file_path = os.path.join(changes_dir, f'generated_changes_{repo_name}.txt')
+                with open(changes_file_path, 'w') as f:
                     f.write(after_changes)
-                subprocess.run(['git', 'add', 'generated_changes.txt'], check=True)
+
+                subprocess.run(['git', 'add', changes_file_path], check=True)
                 subprocess.run(['git', 'commit', '-m', 'After changes'], check=True)
-                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True, text=True).stdout
+                after_changes_diff = subprocess.run(['git', 'diff', 'HEAD~1', 'HEAD'], capture_output=True,
+                                                    text=True).stdout
             else:
                 after_changes_diff = "Not a git repository."
             return {
@@ -227,7 +236,8 @@ def search_and_generate_answer(vectorstore: FAISS, query: str, top_k: int = 5) -
             return {"answer": "Invalid response format.", "before_changes": before_changes, "after_changes": ""}
     except Exception as error:
         logging.error(f"Error searching and answering: {error}")
-        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "", "after_changes": ""}
+        return {"answer": "An error occurred while searching and answering your query.", "before_changes": "",
+                "after_changes": ""}
 
 
 # List of GitHub repository URLs
